@@ -40,7 +40,7 @@ func printLatestSnapshot(db *sql.DB) error {
 	fmt.Println()
 
 	rows, err := db.Query(
-		`SELECT rank, username, volume FROM snapshots
+		`SELECT rank, COALESCE(user_id, ''), username, volume FROM snapshots
 		 WHERE captured_at = ?
 		 ORDER BY rank ASC`,
 		latestAt,
@@ -51,15 +51,15 @@ func printLatestSnapshot(db *sql.DB) error {
 	defer rows.Close()
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight)
-	fmt.Fprintln(w, "排名\t用户名\t交易量\t")
-	fmt.Fprintln(w, "----\t------\t------\t")
+	fmt.Fprintln(w, "排名\tUserID\t用户名\t交易量\t")
+	fmt.Fprintln(w, "----\t------\t------\t------\t")
 	for rows.Next() {
 		var rank int
-		var username, volume string
-		if err := rows.Scan(&rank, &username, &volume); err != nil {
+		var userID, username, volume string
+		if err := rows.Scan(&rank, &userID, &username, &volume); err != nil {
 			return err
 		}
-		fmt.Fprintf(w, "#%d\t%s\t%s\t\n", rank, username, volume)
+		fmt.Fprintf(w, "#%d\t%s\t%s\t%s\t\n", rank, userID, username, volume)
 	}
 	w.Flush()
 

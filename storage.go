@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -23,14 +24,19 @@ func initSchema(db *sql.DB) error {
 			id          INTEGER PRIMARY KEY AUTOINCREMENT,
 			captured_at TEXT    NOT NULL,
 			rank        INTEGER NOT NULL,
+			user_id     TEXT    NOT NULL DEFAULT '',
 			username    TEXT    NOT NULL,
 			volume      TEXT    NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_snapshots_captured_at ON snapshots(captured_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_snapshots_username    ON snapshots(username)`,
+		`ALTER TABLE snapshots ADD COLUMN user_id TEXT NOT NULL DEFAULT ''`,
 	}
 	for _, s := range stmts {
 		if _, err := db.Exec(s); err != nil {
+			if strings.Contains(err.Error(), "duplicate column") {
+				continue
+			}
 			return err
 		}
 	}
@@ -45,7 +51,7 @@ func saveSnapshot(db *sql.DB, entries []Entry) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(
-		`INSERT INTO snapshots (captured_at, rank, username, volume) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO snapshots (captured_at, rank, user_id, username, volume) VALUES (?, ?, ?, ?, ?)`,
 	)
 	if err != nil {
 		return err
@@ -54,7 +60,7 @@ func saveSnapshot(db *sql.DB, entries []Entry) error {
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	for _, e := range entries {
-		if _, err := stmt.Exec(now, e.Rank, e.Username, e.Volume); err != nil {
+		if _, err := stmt.Exec(now, e.Rank, e.UserID, e.Username, e.Volume); err != nil {
 			return err
 		}
 	}

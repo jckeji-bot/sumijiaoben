@@ -46,6 +46,7 @@ type apiEntry struct {
 // Entry holds one leaderboard row.
 type Entry struct {
 	Rank     int
+	UserID   string
 	Username string
 	Volume   string
 }
@@ -150,6 +151,7 @@ func scrapeLeaderboard() ([]Entry, error) {
 		}
 		entries = append(entries, Entry{
 			Rank:     r.Sequence,
+			UserID:   r.UserID,
 			Username: username,
 			Volume:   fmt.Sprintf("%.4f", vol),
 		})
